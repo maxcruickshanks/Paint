@@ -17,7 +17,8 @@ public class rObject
 	public int X, Y, selectedChar;
 	public lType Type; 
 	String[] parsedText;
-	Point topLeft, topRight, bottomLeft, bottomRight;
+	Point topLeft, topRight, Middle, bottomLeft, bottomRight;
+	Rectangle Bounds;
 	
 	rObject(lType type, int x, int y, String text)
 	{
@@ -66,14 +67,22 @@ public class rObject
 		else if (Type == lType.PAINT) G.fillRect(X - Constant.blotchSize - Renderer.shiftX, Y - Constant.blotchSize - Renderer.shiftY, Constant.blotchSize * 2, Constant.blotchSize * 2);
 	}
 	
+	int largestString(Graphics G)
+	{
+		int max = 0;
+		for (int i = 0; i < parsedText.length; i++) max = Math.max(max, G.getFontMetrics().stringWidth(parsedText[i]));
+		return max;
+	}
+	
 	boolean isVisible(Graphics G)
 	{
 		//Text requires greater precision for rendering, whilst a paint blotch is at most a few pixels:
 		if (Type == lType.TEXT)
 		{
-			topLeft = new Point(X - Renderer.shiftX, Y - Renderer.shiftY); topRight = new Point(X - Renderer.shiftX + G.getFontMetrics().stringWidth(Text), Y - Renderer.shiftY);
-				bottomLeft = new Point(X - Renderer.shiftX, Y - Renderer.shiftY + G.getFontMetrics().getHeight() * parsedText.length); bottomRight = new Point(X - Renderer.shiftX + G.getFontMetrics().stringWidth(Text), Y - Renderer.shiftY + G.getFontMetrics().getHeight() * parsedText.length);
-			return Renderer.View.contains(topLeft) || Renderer.View.contains(topRight) || Renderer.View.contains(bottomLeft) || Renderer.View.contains(bottomRight);
+			topLeft = new Point(X - Renderer.shiftX, Y - Renderer.shiftY); topRight = new Point(X - Renderer.shiftX + largestString(G), Y - Renderer.shiftY);
+				bottomLeft = new Point(X - Renderer.shiftX, Y - Renderer.shiftY + G.getFontMetrics().getHeight() * parsedText.length); bottomRight = new Point(X - Renderer.shiftX + largestString(G), Y - Renderer.shiftY + G.getFontMetrics().getHeight() * parsedText.length);
+			Bounds = new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, Math.abs(topLeft.y - bottomRight.y));
+			return Renderer.View.intersects(Bounds);
 		}
 		else if (Type == lType.PAINT) return Renderer.View.contains(new Point(X - Renderer.shiftX, Y - Renderer.shiftY));
 		return false;
@@ -102,7 +111,6 @@ public class rObject
 	//Fix the collision based on the entire string, rather than each line (find the maximum length from all the lines?):
 	public boolean isInside(Point P)
 	{
-		Rectangle Bounds = new Rectangle(topLeft.x, topLeft.y, bottomRight.x - topLeft.x, Math.abs(topLeft.y - bottomRight.y));
 		return Bounds.contains(P);
 	}
 	
@@ -114,6 +122,7 @@ public class rObject
 	public void decreaseDown()
 	{
 		if (selectedChar != Text.length() && Text.substring(selectedChar + 1, Text.length()).contains("\n")) selectedChar += Text.substring(selectedChar + 1, Text.length()).indexOf("\n") + 1;
+		else if (selectedChar != Text.length()) selectedChar = Text.length();
 	}
 	
 	public void increaseChar()
